@@ -76,9 +76,10 @@ public class Map {
     // }
 
     public String getMapDirectory(){
-        return System.getProperty("user.dir")+"/src/main/java/project/app/warzone/Utilities/Maps";
+        return System.getProperty("user.dir")+"\\src\\main\\java\\project\\app\\warzone\\Utilities\\Maps"; //--MAC
+        //return "/src/main/java/project/app/warzone/Utilities/Maps";
+
         //return "/warzone/src/main/java/project/app/warzone/Utilities/Maps";
-       // /Users/aishwaryashinde/Desktop/warzone-project/warzone/src/main/java/project/app/warzone/Utilities/Maps
     }
 
     public String get_USER_SELECTED_FILE() {

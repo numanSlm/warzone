@@ -214,7 +214,6 @@ public class MapFeatures {
                 l_visitedList.put(l_currentNode,false);
             }
           
-
         }
 
        Node n = l_visitedList.entrySet().iterator().next().getKey();
@@ -224,9 +223,7 @@ public class MapFeatures {
 
     }
 
-    public Boolean validateEntireGraph(GameEngine gameEngine){
-
-
+    public Boolean validateEntireGraph (GameEngine gameEngine){
         System.out.println();
         System.out.println("------------------------------");
 
@@ -243,8 +240,6 @@ public class MapFeatures {
             }            
 
         }
-                        
-        
 
         System.out.println("Final visited list:");
          for(Node n : l_visitedList.keySet()){
@@ -259,7 +254,7 @@ public class MapFeatures {
 
     }
 
-    public boolean validateSubGraph(Continent con, List<Node> l_listOfNodes,HashMap<Node,Boolean> l_visitedList){
+    public boolean validateSubGraph (Continent con, List<Node> l_listOfNodes,HashMap<Node,Boolean> l_visitedList){
 
         List<Node> l_nodesOfContinent = l_listOfNodes.stream().filter(c-> c.getData().getContinent().equals(con)).toList();
         l_visitedList =validateByNodes(l_nodesOfContinent,l_visitedList);
@@ -276,7 +271,7 @@ public class MapFeatures {
 
     }
 
-    private HashMap<Node,Boolean> depthFirstSearch(Node currentCountry, HashMap<Node,Boolean> l_visitedList){
+    private HashMap<Node,Boolean> depthFirstSearch (Node currentCountry, HashMap<Node,Boolean> l_visitedList){
 
         l_visitedList.put(currentCountry,true);
 
@@ -294,7 +289,7 @@ public class MapFeatures {
 
         for(Node node : l_listOfBorderNodes){
             if(l_visitedList.get(node) != true){
-                depthFirstSearch(node,l_visitedList);
+                depthFirstSearch (node,l_visitedList);
             }
         }
 
