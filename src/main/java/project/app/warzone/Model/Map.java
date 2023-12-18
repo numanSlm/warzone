@@ -54,6 +54,7 @@ public class Map {
      * 
      * @param countryName country name to create
      * @param continent   storing continent name
+     * @param countryId   storing country Id
      */
     public void createAndInsertCountry( int countryId,String countryName,Continent continent) {
         Country country = new Country(countryId,countryName, continent);
@@ -93,7 +94,7 @@ public class Map {
      * 
      * @return String returns user selected file
      */
-    public String get_USER_SELECTED_FILE() {
+    public String get_USER_SELECTED_FILE() {       
         return USER_SELECTED_FILE;
     }
 
@@ -114,9 +115,9 @@ public class Map {
      */
     public boolean fileExists(String p_filename) {
 
-        System.out.println(getMapDirectory());
+        //System.out.println(getMapDirectory());
         File l_mapDirectory = new File(getMapDirectory());
-        System.out.println("getmapdirect" + l_mapDirectory);
+        //System.out.println("getmapdirect" + l_mapDirectory);
 
         MyFilenameFilter filter = new MyFilenameFilter(p_filename);
         File[] l_matchingFiles = l_mapDirectory.listFiles(filter);

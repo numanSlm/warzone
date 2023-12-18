@@ -7,32 +7,55 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
 import project.app.warzone.Model.Continent;
 import project.app.warzone.Model.GameEngine;
+import project.app.warzone.Model.LogEntryBuffer;
 import project.app.warzone.Model.Map;
 import project.app.warzone.Model.Node;
+import project.app.warzone.Utilities.LogObject;
 import project.app.warzone.Utilities.MapResources;;
 
 /**
  * This class stores all the map-related functions in gameplay
  */
 @Component
-public class MapFeatures {
+public class MapFeatures implements Observer{
 
-    public MapResources mapResouces;
+    private LogEntryBuffer l_logEntryBuffer = new LogEntryBuffer();
+    public static MapResources mapResouces;
+    private static MapFeatures d_singleInstance = null; 
 
+    /**
+     * @param mapResouces
+     */
     public MapFeatures(MapResources mapResouces){
-        this.mapResouces = mapResouces;
+        MapFeatures.mapResouces = mapResouces;
 
+    }
+    
+//Empty Constructor
+    public MapFeatures(){
+       
+    }
+    /**
+     * used for getting instance
+     * @return MapFeatures
+     */
+    public static synchronized MapFeatures getInstance() 
+    { 
+        if (d_singleInstance == null) 
+            d_singleInstance = new MapFeatures(new MapResources()); 
+  
+        return d_singleInstance; 
     }
 
     
@@ -43,6 +66,10 @@ public class MapFeatures {
      * @return Map          returns gamemap
      */
     public Map readMap(String filename){
+        System.out.println("Inside Domination::MapFeatures: readMap()");
+        LogObject l_logObject = new LogObject();
+        l_logObject.setD_command("showmap");
+        l_logEntryBuffer.addObserver(this);
 
         String l_line="";
         List<Continent> continentsList = new ArrayList<>();
@@ -114,16 +141,22 @@ public class MapFeatures {
             }   
        
             reader.close();
+            l_logObject.setStatus(true, "User printed map " + filename.split("/")[filename.split("/").length-1].split(".map")[0]);
+            l_logEntryBuffer.notifyClasses(l_logObject);
             printMap(gameMap);
             return gameMap;
 
         }
         catch(FileNotFoundException e){
+            l_logObject.setStatus(false, "Error: File not found");
+            l_logEntryBuffer.notifyClasses(l_logObject);
             e.printStackTrace();
             return gameMap;
 
         }
         catch (IOException e) {
+            l_logObject.setStatus(false, "IO Exception");
+            l_logEntryBuffer.notifyClasses(l_logObject);
             e.printStackTrace();
             return gameMap;
 
@@ -138,7 +171,7 @@ public class MapFeatures {
      * @param gameMap       used for storing game map
      */
     public void printMap(Map gameMap){
-
+        System.out.println("------Domination Map ------");
         System.out.println("------ Map ------");
         System.out.println();
         String continent ="";
@@ -152,7 +185,7 @@ public class MapFeatures {
             }
             System.out.print(c.getData().getCountryName()+" : ");
             String borderString ="";
-            if(c.getBorders().size()> 0 &&  c.getBorders() != null){
+            if(c.getBorders() != null &&  c.getBorders().size()> 0  ){
                 List<Node> listOfBorders = c.getBorders();
 
                 for(Node border : listOfBorders ){
@@ -177,7 +210,7 @@ public class MapFeatures {
      * 
      * @param p_allNodes                storing list of all nodes
      * @param l_visitedList             storing list of visited nodes
-     * @return Map<Node, Boolean>       storing map
+     * {@literal (@return Map<Node, Boolean>)}      storing map
      */
     public java.util.Map<Node,Boolean> validateByNodes(List<Node> p_allNodes, java.util.Map<Node,Boolean> l_visitedList){
 
@@ -189,7 +222,6 @@ public class MapFeatures {
 
         }
 
-       Node n = l_visitedList.entrySet().iterator().next().getKey();
        depthFirstSearch(l_visitedList.entrySet().iterator().next().getKey(),l_visitedList);
 
        return l_visitedList;
@@ -204,7 +236,7 @@ public class MapFeatures {
      * @param gameEngine           storing gameEngine
      * @return Boolean             returns the status of validating
      */
-    public Boolean validateEntireGraph(GameEngine gameEngine){
+    public boolean validateEntireGraph(GameEngine gameEngine){
 
 
         System.out.println();
@@ -222,15 +254,6 @@ public class MapFeatures {
             if(!l_result){
                 return false;
             }            
-
-        }
-                        
-        
-
-        System.out.println("Final visited list:");
-        for(Node n : l_visitedList.keySet()){
-
-            System.out.println(n.getData().getCountryName()+":"+l_visitedList.get(n));
 
         }
 
@@ -253,7 +276,7 @@ public class MapFeatures {
     public boolean validateSubGraph(Continent con, List<Node> l_listOfNodes,java.util.Map<Node,Boolean> l_visitedList){
 
         List<Node> l_nodesOfContinent = l_listOfNodes.stream().filter(c-> c.getData().getContinent().equals(con)).toList();
-        if(l_nodesOfContinent.size() == 0){
+        if(l_nodesOfContinent.isEmpty()){
             return false;
         }
         l_visitedList =validateByNodes(l_nodesOfContinent,l_visitedList);
@@ -269,9 +292,6 @@ public class MapFeatures {
 
 
     }
-
-
-    
     /** 
      * used for implementing DFS
      * 
@@ -285,21 +305,26 @@ public class MapFeatures {
 
         List<Node> l_listOfBorderNodes = currentCountry.getBorders();
 
-        for( Node l_currentNode : l_listOfBorderNodes){ 
-                       
-            if(!l_visitedList.keySet().contains(l_currentNode)){
-              l_visitedList.put(l_currentNode,false);
+        if(l_listOfBorderNodes != null && l_listOfBorderNodes.size() > 0){
 
-            }        
+            for( Node l_currentNode : l_listOfBorderNodes){ 
+                
+                if(!l_visitedList.keySet().contains(l_currentNode)){
+                l_visitedList.put(l_currentNode,false);
 
-        }
+                }        
 
-
-        for(Node node : l_listOfBorderNodes){
-            if(l_visitedList.get(node) != true){
-                depthFirstSearch(node,l_visitedList);
             }
+
+
+            for(Node node : l_listOfBorderNodes){
+                if(l_visitedList.get(node) != true){
+                    depthFirstSearch(node,l_visitedList);
+                }
+            }
+
         }
+       
 
         return l_visitedList;
     }
@@ -353,7 +378,12 @@ public class MapFeatures {
    }
   }
 
- public void writeCountriesToFile(java.util.Map<String, String> listofCountries,GameEngine gameEngine)throws IOException{
+ /**
+ * @param listofCountries   list of countries
+ * @param gameEngine        gameengine
+ * @throws IOException      throws exception
+ */
+public void writeCountriesToFile(java.util.Map<String, String> listofCountries,GameEngine gameEngine)throws IOException{
    String l_mapLocation=gameEngine.gameMap.getMapDirectory()+"/"+gameEngine.gameMap.get_USER_SELECTED_FILE()+".map"; //mac
         
         java.util.Map<Integer, String> listOfCountriesResource = mapResouces.getAllCountries();
@@ -421,7 +451,12 @@ public class MapFeatures {
 
 
 
- public void writeCountriesNeighborToFile(java.util.Map<String, String> listofNeighBours,GameEngine gameEngine)throws IOException{
+ /**
+ * @param listofNeighBours      list of neighbour country
+ * @param gameEngine            gameengine
+ * @throws IOException          throws exception
+ */
+public void writeCountriesNeighborToFile(java.util.Map<String, String> listofNeighBours,GameEngine gameEngine)throws IOException{
 
     String l_mapLocation=gameEngine.gameMap.getMapDirectory()+"/"+gameEngine.gameMap.get_USER_SELECTED_FILE()+".map"; //mac
 
@@ -447,18 +482,26 @@ public class MapFeatures {
 
     while(currentLine != null){
 
-        System.out.println(currentLine.toString().split(" ")[0]);
+        //System.out.println(currentLine.toString().split(" ")[0]);
         if(listofNeighBours.keySet().contains(currentLine.split(" ")[0]))
         {
             currentLine = currentLine +" "+listofNeighBours.get((currentLine.split(" ")[0]));
             listofNeighBours.remove(currentLine.split(" ")[0]);
 
 
-            writer.write(currentLine + System.getProperty("line.separator"));
+            //writer.write(currentLine + System.getProperty("line.separator"));
+            
 
 
         }
+
+        if(!currentLine.toString().equals("[borders]")){
+            writer.write(currentLine + System.getProperty("line.separator"));
+
+        }
+
         currentLine= reader.readLine();
+
     } 
 
     for(String l_i : listofNeighBours.keySet()){
@@ -477,13 +520,17 @@ public class MapFeatures {
 
 }
 
+/**
+ * @param listofCountries       list of countries
+ * @param gameEngine            game engine
+ * @throws IOException          throws exception
+ */
 public void removeCountriesFromFile(List<String> listofCountries,GameEngine gameEngine)throws IOException{
 
     // Read file in which we have to remove countries
     // Push the line as string to list of string
     // Iterate through the list of string and remove the line which contains the country
     // Write the list of string to the file
-    System.out.println(listofCountries.get(0));
     
     String l_mapLocation=gameEngine.gameMap.getMapDirectory()+"/"+gameEngine.gameMap.get_USER_SELECTED_FILE()+".map"; //mac
     // System.out.println(l_mapLocation);
@@ -496,7 +543,6 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
 
     String currentLine;
     Set<String> countriesToremoved = new HashSet<>(listofCountries);
-    System.out.println(countriesToremoved);
     do{
         currentLine = reader.readLine();
         if(currentLine == null) break;
@@ -505,10 +551,7 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
     while(!currentLine.toString().equals("[countries]"));
         
     while((currentLine = reader.readLine()) != null) {
-        System.out.println(currentLine);
-        
-        System.out.println(currentLine.split(" ")[0]);
-        System.out.println(countriesToremoved.contains(currentLine.split(" ")[0]));
+
         if(countriesToremoved.contains(currentLine.split(" ")[0])) continue;
         writer.write(currentLine + System.getProperty("line.separator"));
     }
@@ -520,9 +563,14 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
    }
 
 
-   public void removeContinentFromFile(List<String> listofContinent,GameEngine gameEngine)throws IOException{
+   /**
+ * @param listofContinent   list of continents
+ * @param gameEngine        gameengine
+ * @throws IOException      throws exception
+ */
+public void removeContinentFromFile(List<String> listofContinent,GameEngine gameEngine)throws IOException{
 
-    java.util.Map<Integer, String> listOfContinentsResource = mapResouces.getAllContinents();
+    // java.util.Map<Integer, String> listOfContinentsResource = mapResouces.getAllContinents();
     System.out.println(listofContinent.get(0));
     
 
@@ -536,7 +584,7 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
 
     String currentLine;
     Set<String> continentsToremoved = new HashSet<>(listofContinent);
-    System.out.println(continentsToremoved);
+    //System.out.println(continentsToremoved);
     // change here
 
     do{
@@ -549,9 +597,9 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
         
 
     while((currentLine = reader.readLine()) != null) {
-        System.out.println(currentLine);        
-        System.out.println(currentLine.split(" ")[0]);
-        System.out.println(continentsToremoved.contains(currentLine.split(" ")[0]));
+        // System.out.println(currentLine);        
+        // System.out.println(currentLine.split(" ")[0]);
+        // System.out.println(continentsToremoved.contains(currentLine.split(" ")[0]));
         //String l_continentName  = listOfContinentsResource.get()
         if(continentsToremoved.contains(currentLine.split(" ")[0])) continue;
 
@@ -565,6 +613,11 @@ public void removeCountriesFromFile(List<String> listofCountries,GameEngine game
 }
 
 
+/**
+ * @param listofNeighBours      list of neighbour country
+ * @param gameEngine            gameengine
+ * @throws IOException             throws exception
+ */
 public void removeborderFromFile(java.util.Map<String, String> listofNeighBours,GameEngine gameEngine)throws IOException{
     
     String l_mapLocation=gameEngine.gameMap.getMapDirectory()+"/"+gameEngine.gameMap.get_USER_SELECTED_FILE()+".map"; //mac
@@ -596,6 +649,7 @@ public void removeborderFromFile(java.util.Map<String, String> listofNeighBours,
             for(int i=1 ; i < mainString.length ;i++){
                 if(l_ToRemove.contains(mainString[i].toString())){
                     mainString[i]="";
+                    finalString.trim();
                 }
             }
             for(String s : mainString){
@@ -607,7 +661,10 @@ public void removeborderFromFile(java.util.Map<String, String> listofNeighBours,
 
 
         }
-        writer.write(currentLine + System.getProperty("line.separator"));
+        if(!currentLine.toString().equals("[borders]")){
+            writer.write(currentLine + System.getProperty("line.separator"));
+
+        }
 
         currentLine= reader.readLine();
     }
@@ -619,6 +676,28 @@ public void removeborderFromFile(java.util.Map<String, String> listofNeighBours,
 
 
 }
+
+    /**
+     * This method is used to update the log file
+     * @param o is the observable object
+     * @param arg is the object to be updated
+     */
+    public void update(Observable o, Object arg) {
+        if(arg instanceof LogObject){
+            LogObject l_logObject = (LogObject) arg;
+            try {
+                BufferedWriter l_writer = new BufferedWriter(new FileWriter(System.getProperty("logFileLocation"), true));
+                l_writer.newLine();
+                l_writer.append(LogObject.d_logLevel + " " + l_logObject.d_command + "\n" + "Time: " + l_logObject.d_timestamp + "\n" + "Status: " + l_logObject.d_statusCode + "\n" + "Description: " + l_logObject.d_message);
+                System.out.println( "Inside update method of MapEditorCommands");
+                l_writer.newLine();
+                l_writer.close();
+            } catch (IOException e) {
+                System.out.println("Error Reading file");
+            }
+        }
+    }
+
 
 
 }
